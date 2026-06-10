@@ -12,10 +12,17 @@ const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 // Middleware
-app.use(cors({
-  origin: CLIENT_URL,
-  credentials: true
-}));
+const corsOptions = {
+  credentials: true,
+  // If CLIENT_URL is not set (or when deploying before frontend), allow all origins
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // allow non-browser requests
+    if (!process.env.CLIENT_URL) return callback(null, true);
+    callback(null, true);
+  }
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Initialize database
