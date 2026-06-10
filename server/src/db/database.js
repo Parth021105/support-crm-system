@@ -1,12 +1,24 @@
 import sqlite3 from 'sqlite3';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path';
 import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const DB_PATH = process.env.DB_PATH || join(__dirname, '../../database.db');
+// DB_PATH can be relative in Railway.
+// Normalize it to an absolute path to avoid "cannot write" crashes.
+const configuredPath = process.env.DB_PATH;
+const fallbackPath = join(__dirname, '../../database.db');
+const DB_PATH = configuredPath ? resolve(configuredPath) : fallbackPath;
+
+// Ensure parent directory exists (Railway filesystem may not have it).
+try {
+  fs.mkdirSync(resolve(DB_PATH, '..'), { recursive: true });
+} catch (e) {
+  // If mkdir fails, sqlite will throw a clearer error on open.
+  console.warn('Warning: could not ensure DB directory exists:', e?.message || e);
+}
 
 // Initialize database connection
 const db = new sqlite3.Database(DB_PATH, (err) => {
